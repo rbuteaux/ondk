@@ -1,0 +1,41 @@
+name: ondk build
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+macos-universal:
+    name: Build for macOS (Universal)
+    runs-on: macos-latest
+    if: ${{ github.event_name == 'release' }}
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Build toolchain
+        run: ./build.sh
+        env:
+          SKIP_DIST: 1
+
+      - name: Download arm64 artifact
+        uses: robinraju/release-downloader@v1.8
+        with:
+          tag: ${{ github.event.release.tag_name }}
+          fileName: ondk-macos-arm64.tar.gz
+
+      - name: Build ONDK
+        run: ./dist-macos.sh
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.tar.xz
